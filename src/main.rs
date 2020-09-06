@@ -5,6 +5,7 @@ use std::cmp::min;
 use std::f64::INFINITY;
 use std::fs::File;
 use std::io::prelude::*;
+use std::io::BufWriter;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::time::Instant;
@@ -28,7 +29,7 @@ fn ray_color(ray: &Ray, world: &HittableList) -> C3 {
 
 fn main() -> std::io::Result<()> {
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 400;
+    let image_width = 1920;
     let image_height = (image_width as f64 / aspect_ratio).round() as usize;
 
     // world
@@ -71,7 +72,7 @@ fn main() -> std::io::Result<()> {
     });
 
     let file = File::create("image.ppm")?;
-    write_ppm_file(file, &pixels)?;
+    write_ppm_file(BufWriter::new(file), &pixels)?;
 
     Ok(())
 }
@@ -99,7 +100,7 @@ where
     println!("\nRendering took {:.2}s", start.elapsed().as_secs_f64());
 }
 
-fn write_ppm_file(mut file: File, pixels: &Vec<Vec<V3>>) -> std::io::Result<()> {
+fn write_ppm_file<W: Write>(mut file: W, pixels: &Vec<Vec<V3>>) -> std::io::Result<()> {
     let start = Instant::now();
     percentage("writing", 0.0);
 
