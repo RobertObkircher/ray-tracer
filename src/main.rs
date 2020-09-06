@@ -21,17 +21,24 @@ fn percentage(name: &str, percentage: f64) {
     std::io::stdout().flush().expect("failed to flush stdout");
 }
 
-fn ray_color(ray: &Ray, world: &HittableList) -> C3 {
-    if let Some(hit) = world.hit(ray, 0.0, INFINITY) {
-        return (hit.normal + c3(1.0, 1.0, 1.0)).scale(0.5);
+fn ray_color(ray: &Ray, world: &HittableList, depth: usize) -> C3 {
+    if depth == 0 {
+        return C3::zero();
+    }
+    // t_min=0.001 to get rid of shadow acne
+    if let Some(hit) = world.hit(ray, 0.001, INFINITY) {
+        //let target = hit.point + hit.normal + P3::random_in_unit_sphere();
+        let target = hit.point + hit.normal + P3::random_on_unit_sphere();
+        //let target = hit.point + V3::random_in_hemisphere(&hit.normal);
+        let new_ray = Ray {
+            origin: hit.point,
+            direction: target - hit.point,
+        };
+        return ray_color(&new_ray, world, depth - 1).scale(0.5);
     }
     let dir = ray.direction.norm();
     let t = 0.5 * (dir.y + 1.0);
     c3(1.0, 1.0, 1.0).scale(1.0 - t) + c3(0.5, 0.7, 1.0).scale(t)
-}
-
-fn random_range(min: f64, max: f64) -> f64 {
-    min + (max - min) * random::<f64>()
 }
 
 // y up, x right, z back (rhs coordinate system)
@@ -41,6 +48,7 @@ fn main() -> std::io::Result<()> {
     let image_width = 1920;
     let image_height = (image_width as f64 / aspect_ratio).round() as usize;
     let samples_per_pixel = 128;
+    let max_depth = 50;
 
     // world
     let world = HittableList {
@@ -64,11 +72,11 @@ fn main() -> std::io::Result<()> {
     render(&mut pixels, |row, col, pixel| {
         let mut color = C3::zero();
 
-        for s in 0..samples_per_pixel {
+        for _ in 0..samples_per_pixel {
             let u = (col as f64 + random::<f64>()) / (image_width - 1) as f64;
             let v = (row as f64 + random::<f64>()) / (image_height - 1) as f64;
             let ray = camera.ray(u, v);
-            color += ray_color(&ray, &world);
+            color += ray_color(&ray, &world, max_depth);
         }
 
         *pixel = color.div(samples_per_pixel as f64);
@@ -120,9 +128,14 @@ fn write_ppm_file<W: Write>(mut file: W, pixels: &Vec<Vec<V3>>) -> std::io::Resu
     // is at the top left.
     for (i, pixel_row) in pixels.iter().rev().enumerate() {
         for pixel in pixel_row {
-            let ir = min(255, (256.0 * pixel.x) as u64);
-            let ig = min(255, (256.0 * pixel.y) as u64);
-            let ib = min(255, (256.0 * pixel.z) as u64);
+            // gamma-correct for gamma=2.0
+            let r = pixel.x.sqrt();
+            let g = pixel.y.sqrt();
+            let b = pixel.z.sqrt();
+
+            let ir = min(255, (256.0 * r) as u64);
+            let ig = min(255, (256.0 * g) as u64);
+            let ib = min(255, (256.0 * b) as u64);
 
             writeln!(file, "{} {} {} ", ir, ig, ib)?;
         }

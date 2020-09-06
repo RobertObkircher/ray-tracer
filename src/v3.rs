@@ -1,3 +1,5 @@
+use rand::random;
+use std::f64::consts::PI;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 /// Point
@@ -68,7 +70,46 @@ impl V3 {
     }
 
     pub fn zero() -> V3 {
-        v3(0.0, 0.0, 0.0)
+        V3::all(0.0)
+    }
+
+    pub fn all(value: f64) -> V3 {
+        v3(value, value, value)
+    }
+
+    pub fn random() -> V3 {
+        v3(random(), random(), random())
+    }
+
+    pub fn random_min_max(min: f64, max: f64) -> V3 {
+        V3::all(min) + V3::random() * (V3::all(max) - V3::all(min))
+    }
+
+    pub fn random_in_unit_sphere() -> P3 {
+        loop {
+            let point = P3::random_min_max(-1.0, 1.0);
+            if point.len2() < 1.0 {
+                return point;
+            }
+        }
+    }
+
+    // lambertian distribution
+    // picking points on the surface of the unit sphere offset along the surface normal
+    pub fn random_on_unit_sphere() -> P3 {
+        let a = random::<f64>() * 2.0 * PI;
+        let z = -1.0 + 2.0 * random::<f64>();
+        let r = (1.0 - z * z).sqrt();
+        p3(r * a.cos(), r * a.sin(), z)
+    }
+
+    pub fn random_in_hemisphere(normal: &V3) -> V3 {
+        let in_unit_sphere = P3::random_in_unit_sphere();
+        if in_unit_sphere.dot(normal) > 0.0 {
+            in_unit_sphere
+        } else {
+            -in_unit_sphere
+        }
     }
 }
 
