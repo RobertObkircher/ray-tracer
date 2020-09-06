@@ -1,3 +1,4 @@
+use crate::ray::*;
 use crate::v3::*;
 use rayon::prelude::*;
 use std::cmp::min;
@@ -7,23 +8,48 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::time::Instant;
 
+mod ray;
 mod v3;
 
 fn percentage(name: &str, percentage: f64) {
     print!("\r{} {:6.2}%", name, 100.0 * percentage);
-    std::io::stdout().flush().unwrap();
+    std::io::stdout().flush().expect("failed to flush stdout");
+}
+
+fn ray_color(ray: &Ray) -> C3 {
+    let dir = ray.direction.norm();
+    let t = 0.5 * dir.y + 1.0;
+    c3(1.0, 1.0, 1.0).scale(1.0 - t) + c3(0.5, 0.7, 1.0).scale(t)
 }
 
 fn main() -> std::io::Result<()> {
-    let image_width = 256;
-    let image_height = 256;
-    let mut pixels = vec![vec![v3(0.0, 0.0, 0.0); image_width]; image_height];
+    let aspect_ratio = 16.0 / 9.0;
+    let image_width = 400;
+    let image_height = (image_width as f64 / aspect_ratio).round() as usize;
 
+    // camera
+    // y up, x right, z back (rhs coordinate system)
+    let viewport_height = 2.0;
+    let viewport_width = aspect_ratio * viewport_height;
+    let focal_length = 1.0;
+
+    let origin = zero3();
+    let horizontal = v3(viewport_width, 0.0, 0.0);
+    let vertical = v3(0.0, viewport_height, 0.0);
+    let lower_left_corner =
+        origin - horizontal.div(2.0) - vertical.div(2.0) - v3(0.0, 0.0, focal_length);
+
+    let mut pixels = vec![vec![v3(0.0, 0.0, 0.0); image_width]; image_height];
     render(&mut pixels, |row, col, pixel| {
-        let r = col as f64 / (image_width - 1) as f64;
-        let g = row as f64 / (image_height - 1) as f64;
-        let b = 0.25 as f64;
-        *pixel = v3(r, g, b);
+        let u = col as f64 / (image_width - 1) as f64;
+        let v = row as f64 / (image_height - 1) as f64;
+
+        let r = Ray {
+            origin,
+            direction: lower_left_corner + horizontal.scale(u) + vertical.scale(v) - origin,
+        };
+
+        *pixel = ray_color(&r);
     });
 
     let file = File::create("image.ppm")?;
@@ -67,7 +93,10 @@ fn write_ppm_file(mut file: File, pixels: &Vec<Vec<V3>>) -> std::io::Result<()> 
         pixels.len()
     )?;
     writeln!(file, "255")?;
-    for (i, pixel_row) in pixels.iter().enumerate() {
+    // The book iterates the rows backwards, because it assumes
+    // the bottom left corner is (0,0). In ppm the first pixel
+    // is at the top left.
+    for (i, pixel_row) in pixels.iter().rev().enumerate() {
         for pixel in pixel_row {
             let ir = min(255, (256.0 * pixel.x) as u64);
             let ig = min(255, (256.0 * pixel.y) as u64);

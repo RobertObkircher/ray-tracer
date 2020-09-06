@@ -1,7 +1,10 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-pub type Point3 = V3;
-pub type Color = V3;
+/// Point
+pub type P3 = V3;
+
+/// Color
+pub type C3 = V3;
 
 #[derive(Clone, Copy, Debug)]
 pub struct V3 {
@@ -12,6 +15,14 @@ pub struct V3 {
 
 pub fn v3(x: f64, y: f64, z: f64) -> V3 {
     V3 { x, y, z }
+}
+
+pub fn c3(x: f64, y: f64, z: f64) -> C3 {
+    C3 { x, y, z }
+}
+
+pub fn p3(x: f64, y: f64, z: f64) -> P3 {
+    P3 { x, y, z }
 }
 
 pub fn zero3() -> V3 {
