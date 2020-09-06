@@ -1,5 +1,7 @@
+use crate::camera::Camera;
 use crate::geometry::*;
 use crate::v3::*;
+use rand::prelude::*;
 use rayon::prelude::*;
 use std::cmp::min;
 use std::f64::INFINITY;
@@ -10,6 +12,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::time::Instant;
 
+mod camera;
 mod geometry;
 mod v3;
 
@@ -27,10 +30,17 @@ fn ray_color(ray: &Ray, world: &HittableList) -> C3 {
     c3(1.0, 1.0, 1.0).scale(1.0 - t) + c3(0.5, 0.7, 1.0).scale(t)
 }
 
+fn random_range(min: f64, max: f64) -> f64 {
+    min + (max - min) * random::<f64>()
+}
+
+// y up, x right, z back (rhs coordinate system)
 fn main() -> std::io::Result<()> {
+    // image
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 1920;
     let image_height = (image_width as f64 / aspect_ratio).round() as usize;
+    let samples_per_pixel = 128;
 
     // world
     let world = HittableList {
@@ -47,28 +57,21 @@ fn main() -> std::io::Result<()> {
     };
 
     // camera
-    // y up, x right, z back (rhs coordinate system)
-    let viewport_height = 2.0;
-    let viewport_width = aspect_ratio * viewport_height;
-    let focal_length = 1.0;
+    let camera = Camera::new(aspect_ratio);
 
-    let origin = P3::zero();
-    let horizontal = v3(viewport_width, 0.0, 0.0);
-    let vertical = v3(0.0, viewport_height, 0.0);
-    let lower_left_corner =
-        origin - horizontal.div(2.0) - vertical.div(2.0) - v3(0.0, 0.0, focal_length);
-
+    // render
     let mut pixels = vec![vec![v3(0.0, 0.0, 0.0); image_width]; image_height];
     render(&mut pixels, |row, col, pixel| {
-        let u = col as f64 / (image_width - 1) as f64;
-        let v = row as f64 / (image_height - 1) as f64;
+        let mut color = C3::zero();
 
-        let r = Ray {
-            origin,
-            direction: lower_left_corner + horizontal.scale(u) + vertical.scale(v) - origin,
-        };
+        for s in 0..samples_per_pixel {
+            let u = (col as f64 + random::<f64>()) / (image_width - 1) as f64;
+            let v = (row as f64 + random::<f64>()) / (image_height - 1) as f64;
+            let ray = camera.ray(u, v);
+            color += ray_color(&ray, &world);
+        }
 
-        *pixel = ray_color(&r, &world);
+        *pixel = color.div(samples_per_pixel as f64);
     });
 
     let file = File::create("image.ppm")?;
