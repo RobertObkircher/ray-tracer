@@ -1,3 +1,4 @@
+use crate::material::Material;
 use crate::v3::*;
 
 pub struct Ray {
@@ -12,11 +13,12 @@ impl Ray {
     }
 }
 
-pub struct Hit {
+pub struct Hit<'a> {
     pub point: P3,
     /// against the ray, not the surface
     pub normal: V3,
     pub t: f64,
+    pub material: &'a Material,
     pub front_face: bool,
 }
 
@@ -24,12 +26,13 @@ pub trait Hittable {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit>;
 }
 
-pub struct Sphere {
+pub struct Sphere<'a> {
     pub center: P3,
     pub radius: f64,
+    pub material: &'a Material,
 }
 
-impl Hittable for Sphere {
+impl Hittable for Sphere<'_> {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit> {
         let oc = ray.origin - self.center;
         let a = ray.direction.len2();
@@ -48,6 +51,7 @@ impl Hittable for Sphere {
                     point,
                     normal: if front_face { outward } else { -outward },
                     t,
+                    material: self.material,
                     front_face,
                 })
             };
@@ -68,11 +72,11 @@ impl Hittable for Sphere {
     }
 }
 
-pub struct HittableList {
-    pub spheres: Vec<Sphere>,
+pub struct HittableList<'a> {
+    pub spheres: Vec<Sphere<'a>>,
 }
 
-impl Hittable for HittableList {
+impl Hittable for HittableList<'_> {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit> {
         let mut hit = None;
         let mut closest_so_far = t_max;

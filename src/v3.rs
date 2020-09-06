@@ -111,6 +111,10 @@ impl V3 {
             -in_unit_sphere
         }
     }
+
+    pub fn reflect(&self, normal: &V3) -> V3 {
+        self - normal.scale(2.0 * self.dot(normal))
+    }
 }
 
 impl Neg for V3 {

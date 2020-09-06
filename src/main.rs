@@ -1,5 +1,6 @@
 use crate::camera::Camera;
 use crate::geometry::*;
+use crate::material::Material;
 use crate::v3::*;
 use rand::prelude::*;
 use rayon::prelude::*;
@@ -14,12 +15,8 @@ use std::time::Instant;
 
 mod camera;
 mod geometry;
+mod material;
 mod v3;
-
-fn percentage(name: &str, percentage: f64) {
-    print!("\r{} {:6.2}%", name, 100.0 * percentage);
-    std::io::stdout().flush().expect("failed to flush stdout");
-}
 
 fn ray_color(ray: &Ray, world: &HittableList, depth: usize) -> C3 {
     if depth == 0 {
@@ -27,18 +24,16 @@ fn ray_color(ray: &Ray, world: &HittableList, depth: usize) -> C3 {
     }
     // t_min=0.001 to get rid of shadow acne
     if let Some(hit) = world.hit(ray, 0.001, INFINITY) {
-        //let target = hit.point + hit.normal + P3::random_in_unit_sphere();
-        let target = hit.point + hit.normal + P3::random_on_unit_sphere();
-        //let target = hit.point + V3::random_in_hemisphere(&hit.normal);
-        let new_ray = Ray {
-            origin: hit.point,
-            direction: target - hit.point,
-        };
-        return ray_color(&new_ray, world, depth - 1).scale(0.5);
+        if let Some((attenuation, scattered)) = hit.material.scatter(ray, &hit) {
+            attenuation * ray_color(&scattered, world, depth - 1)
+        } else {
+            C3::zero()
+        }
+    } else {
+        let dir = ray.direction.norm();
+        let t = 0.5 * (dir.y + 1.0);
+        c3(1.0, 1.0, 1.0).scale(1.0 - t) + c3(0.5, 0.7, 1.0).scale(t)
     }
-    let dir = ray.direction.norm();
-    let t = 0.5 * (dir.y + 1.0);
-    c3(1.0, 1.0, 1.0).scale(1.0 - t) + c3(0.5, 0.7, 1.0).scale(t)
 }
 
 // y up, x right, z back (rhs coordinate system)
@@ -51,15 +46,42 @@ fn main() -> std::io::Result<()> {
     let max_depth = 50;
 
     // world
+    let material_ground = Material::Lambertian {
+        albedo: c3(0.8, 0.8, 0.0),
+    };
+    let material_center = Material::Lambertian {
+        albedo: c3(0.7, 0.3, 0.3),
+    };
+    let material_left = Material::Metal {
+        albedo: c3(0.8, 0.8, 0.8),
+        fuzz: 0.3,
+    };
+    let material_right = Material::Metal {
+        albedo: c3(0.8, 0.6, 0.2),
+        fuzz: 1.0,
+    };
+
     let world = HittableList {
         spheres: vec![
             Sphere {
-                center: p3(0.0, 0.0, -1.0),
-                radius: 0.5,
-            },
-            Sphere {
                 center: p3(0.0, -100.5, -1.0),
                 radius: 100.0,
+                material: &material_ground,
+            },
+            Sphere {
+                center: p3(0.0, 0.0, -1.0),
+                radius: 0.5,
+                material: &material_center,
+            },
+            Sphere {
+                center: p3(-1.0, 0.0, -1.0),
+                radius: 0.5,
+                material: &material_left,
+            },
+            Sphere {
+                center: p3(1.0, 0.0, -1.0),
+                radius: 0.5,
+                material: &material_right,
             },
         ],
     };
@@ -93,8 +115,8 @@ where
     F: Fn(usize, usize, &mut V3) + Sync,
 {
     let start = Instant::now();
-    let progress = AtomicUsize::new(0);
-    percentage("rendering", 0.0);
+    let count = AtomicUsize::new(0);
+    progress("rendering", 0.0);
     let height = pixels.len();
     pixels
         .par_iter_mut()
@@ -104,16 +126,16 @@ where
                 .iter_mut()
                 .enumerate()
                 .for_each(|(col, pixel)| f(row, col, pixel));
-            let old = progress.fetch_add(1, Ordering::SeqCst);
-            percentage("rendering", (old + 1) as f64 / height as f64);
+            let old = count.fetch_add(1, Ordering::SeqCst);
+            progress("rendering", (old + 1) as f64 / height as f64);
         });
-    percentage("rendering", 1.0);
+    progress("rendering", 1.0);
     println!("\nRendering took {:.2}s", start.elapsed().as_secs_f64());
 }
 
 fn write_ppm_file<W: Write>(mut file: W, pixels: &Vec<Vec<V3>>) -> std::io::Result<()> {
     let start = Instant::now();
-    percentage("writing", 0.0);
+    progress("writing", 0.0);
 
     writeln!(file, "P3")?;
     writeln!(
@@ -139,9 +161,14 @@ fn write_ppm_file<W: Write>(mut file: W, pixels: &Vec<Vec<V3>>) -> std::io::Resu
 
             writeln!(file, "{} {} {} ", ir, ig, ib)?;
         }
-        percentage("writing", (i + 1) as f64 / pixels.len() as f64);
+        progress("writing", (i + 1) as f64 / pixels.len() as f64);
     }
 
     println!("\nWriting took {:.2}s", start.elapsed().as_secs_f64());
     Ok(())
+}
+
+fn progress(name: &str, percentage: f64) {
+    print!("\r{} {:6.2}%", name, 100.0 * percentage);
+    std::io::stdout().flush().expect("failed to flush stdout");
 }
