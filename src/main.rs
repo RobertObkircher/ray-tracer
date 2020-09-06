@@ -2,6 +2,7 @@ use crate::geometry::*;
 use crate::v3::*;
 use rayon::prelude::*;
 use std::cmp::min;
+use std::f64::INFINITY;
 use std::fs::File;
 use std::io::prelude::*;
 use std::sync::atomic::AtomicUsize;
@@ -16,12 +17,12 @@ fn percentage(name: &str, percentage: f64) {
     std::io::stdout().flush().expect("failed to flush stdout");
 }
 
-fn ray_color(ray: &Ray) -> C3 {
-    if hit_sphere(p3(0.0, 0.0, -1.0), 0.5, ray) {
-        return c3(1.0, 0.0, 0.0);
+fn ray_color(ray: &Ray, world: &HittableList) -> C3 {
+    if let Some(hit) = world.hit(ray, 0.0, INFINITY) {
+        return (hit.normal + c3(1.0, 1.0, 1.0)).scale(0.5);
     }
     let dir = ray.direction.norm();
-    let t = 0.5 * dir.y + 1.0;
+    let t = 0.5 * (dir.y + 1.0);
     c3(1.0, 1.0, 1.0).scale(1.0 - t) + c3(0.5, 0.7, 1.0).scale(t)
 }
 
@@ -29,6 +30,20 @@ fn main() -> std::io::Result<()> {
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 400;
     let image_height = (image_width as f64 / aspect_ratio).round() as usize;
+
+    // world
+    let world = HittableList {
+        spheres: vec![
+            Sphere {
+                center: p3(0.0, 0.0, -1.0),
+                radius: 0.5,
+            },
+            Sphere {
+                center: p3(0.0, -100.5, -1.0),
+                radius: 100.0,
+            },
+        ],
+    };
 
     // camera
     // y up, x right, z back (rhs coordinate system)
@@ -52,7 +67,7 @@ fn main() -> std::io::Result<()> {
             direction: lower_left_corner + horizontal.scale(u) + vertical.scale(v) - origin,
         };
 
-        *pixel = ray_color(&r);
+        *pixel = ray_color(&r, &world);
     });
 
     let file = File::create("image.ppm")?;
