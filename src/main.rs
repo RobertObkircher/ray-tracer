@@ -1,4 +1,4 @@
-use crate::ray::*;
+use crate::geometry::*;
 use crate::v3::*;
 use rayon::prelude::*;
 use std::cmp::min;
@@ -8,7 +8,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::time::Instant;
 
-mod ray;
+mod geometry;
 mod v3;
 
 fn percentage(name: &str, percentage: f64) {
@@ -17,6 +17,9 @@ fn percentage(name: &str, percentage: f64) {
 }
 
 fn ray_color(ray: &Ray) -> C3 {
+    if hit_sphere(p3(0.0, 0.0, -1.0), 0.5, ray) {
+        return c3(1.0, 0.0, 0.0);
+    }
     let dir = ray.direction.norm();
     let t = 0.5 * dir.y + 1.0;
     c3(1.0, 1.0, 1.0).scale(1.0 - t) + c3(0.5, 0.7, 1.0).scale(t)
@@ -33,7 +36,7 @@ fn main() -> std::io::Result<()> {
     let viewport_width = aspect_ratio * viewport_height;
     let focal_length = 1.0;
 
-    let origin = zero3();
+    let origin = P3::zero();
     let horizontal = v3(viewport_width, 0.0, 0.0);
     let vertical = v3(0.0, viewport_height, 0.0);
     let lower_left_corner =

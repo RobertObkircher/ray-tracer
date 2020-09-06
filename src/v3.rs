@@ -25,10 +25,6 @@ pub fn p3(x: f64, y: f64, z: f64) -> P3 {
     P3 { x, y, z }
 }
 
-pub fn zero3() -> V3 {
-    v3(0.0, 0.0, 0.0)
-}
-
 impl V3 {
     pub fn dot(&self, rhs: &V3) -> f64 {
         let v = self * rhs;
@@ -43,16 +39,16 @@ impl V3 {
         }
     }
 
-    pub fn length(&self) -> f64 {
-        f64::sqrt(self.length_squared())
+    pub fn len(&self) -> f64 {
+        f64::sqrt(self.len2())
     }
 
-    pub fn length_squared(&self) -> f64 {
+    pub fn len2(&self) -> f64 {
         self.dot(self)
     }
 
     pub fn norm(&self) -> V3 {
-        self.div(self.length())
+        self.div(self.len())
     }
 
     pub fn scale(&self, b: f64) -> V3 {
@@ -69,6 +65,10 @@ impl V3 {
             y: self.y / b,
             z: self.z / b,
         }
+    }
+
+    pub fn zero() -> V3 {
+        v3(0.0, 0.0, 0.0)
     }
 }
 
@@ -177,10 +177,10 @@ mod tests {
     fn len() {
         let v1 = v3(3.0, 4.0, 5.0);
 
-        assert_eq!(v1.length_squared(), 50.0);
-        assert_eq!(v1.length(), (50.0 as f64).sqrt());
-        assert!((1.0 - v1.norm().length()).abs() < 0.000000001);
-        assert!((1.0 - v1.norm().length_squared()).abs() < 0.000000001);
+        assert_eq!(v1.len2(), 50.0);
+        assert_eq!(v1.len(), (50.0 as f64).sqrt());
+        assert!((1.0 - v1.norm().len()).abs() < 0.000000001);
+        assert!((1.0 - v1.norm().len2()).abs() < 0.000000001);
     }
 
     #[test]
