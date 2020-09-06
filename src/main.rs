@@ -1,3 +1,4 @@
+use crate::v3::*;
 use rayon::prelude::*;
 use std::cmp::min;
 use std::fs::File;
@@ -6,16 +7,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::time::Instant;
 
-fn v3(x: f64, y: f64, z: f64) -> V3 {
-    V3 { x, y, z }
-}
-
-#[derive(Clone, Copy)]
-struct V3 {
-    x: f64,
-    y: f64,
-    z: f64,
-}
+mod v3;
 
 fn percentage(name: &str, percentage: f64) {
     print!("\r{} {:6.2}%", name, 100.0 * percentage);
