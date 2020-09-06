@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cargo run --release && feh --full-screen --auto-zoom image.ppm
