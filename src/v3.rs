@@ -94,6 +94,19 @@ impl V3 {
         }
     }
 
+    pub fn random_in_unit_disk() -> P3 {
+        loop {
+            let point = P3 {
+                x: -1.0 + 2.0 * random::<f64>(),
+                y: -1.0 + 2.0 * random::<f64>(),
+                z: 0.0,
+            };
+            if point.len2() < 1.0 {
+                return point;
+            }
+        }
+    }
+
     // lambertian distribution
     // picking points on the surface of the unit sphere offset along the surface normal
     pub fn random_on_unit_sphere() -> P3 {

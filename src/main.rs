@@ -89,14 +89,19 @@ fn main() -> std::io::Result<()> {
     };
 
     // camera
-    let lookfrom = p3(-2.0, 2.0, 1.0);
+    let lookfrom = p3(3.0, 3.0, 2.0);
     let lookat = p3(0.0, 0.0, -1.0);
+    let view_up = v3(0.0, 1.0, 0.0);
+    let dist_to_focus = (lookfrom - lookat).len();
+    let aperture = 2.0;
     let camera = Camera::new(
         lookfrom,
         lookat,
-        v3(0.0, 1.0, 0.0),
+        view_up,
         20.0_f64.to_radians(),
         aspect_ratio,
+        aperture,
+        dist_to_focus,
     );
 
     // render
