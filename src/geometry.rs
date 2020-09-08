@@ -26,13 +26,13 @@ pub trait Hittable {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit>;
 }
 
-pub struct Sphere<'a> {
+pub struct Sphere {
     pub center: P3,
     pub radius: f64,
-    pub material: &'a Material,
+    pub material: Material,
 }
 
-impl Hittable for Sphere<'_> {
+impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit> {
         let oc = ray.origin - self.center;
         let a = ray.direction.len2();
@@ -51,7 +51,7 @@ impl Hittable for Sphere<'_> {
                     point,
                     normal: if front_face { outward } else { -outward },
                     t,
-                    material: self.material,
+                    material: &self.material,
                     front_face,
                 })
             };
@@ -72,11 +72,11 @@ impl Hittable for Sphere<'_> {
     }
 }
 
-pub struct HittableList<'a> {
-    pub spheres: Vec<Sphere<'a>>,
+pub struct HittableList {
+    pub spheres: Vec<Sphere>,
 }
 
-impl Hittable for HittableList<'_> {
+impl Hittable for HittableList {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit> {
         let mut hit = None;
         let mut closest_so_far = t_max;

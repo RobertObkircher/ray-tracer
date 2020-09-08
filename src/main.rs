@@ -36,64 +36,91 @@ fn ray_color(ray: &Ray, world: &HittableList, depth: usize) -> C3 {
     }
 }
 
+fn random_scene() -> HittableList {
+    let mut spheres = Vec::new();
+    spheres.push(Sphere {
+        center: p3(0.0, -1000.0, 0.0),
+        radius: 1000.0,
+        material: Material::Lambertian {
+            albedo: c3(0.5, 0.5, 0.5),
+        },
+    });
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let center = p3(
+                a as f64 + 0.9 * random::<f64>(),
+                0.2,
+                b as f64 + 0.9 * random::<f64>(),
+            );
+
+            if (center - p3(4.0, 0.2, 0.0)).len() > 0.9 {
+                let choose_mat = random::<f64>();
+                let material = if choose_mat < 0.8 {
+                    Material::Lambertian {
+                        albedo: C3::random() * C3::random(),
+                    }
+                } else if choose_mat < 0.95 {
+                    Material::Metal {
+                        albedo: C3::random_min_max(0.5, 1.0),
+                        fuzz: random::<f64>() * 0.5,
+                    }
+                } else {
+                    Material::Dielectric { ref_idx: 1.5 }
+                };
+                spheres.push(Sphere {
+                    center,
+                    radius: 0.2,
+                    material: material,
+                });
+            };
+        }
+    }
+
+    spheres.push(Sphere {
+        center: p3(0.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Material::Dielectric { ref_idx: 1.5 },
+    });
+
+    spheres.push(Sphere {
+        center: p3(-4.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Material::Lambertian {
+            albedo: c3(0.4, 0.2, 0.1),
+        },
+    });
+
+    spheres.push(Sphere {
+        center: p3(4.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Material::Metal {
+            albedo: c3(0.7, 0.6, 0.5),
+            fuzz: 0.0,
+        },
+    });
+
+    HittableList { spheres }
+}
+
 // y up, x right, z back (rhs coordinate system)
 fn main() -> std::io::Result<()> {
     // image
-    let aspect_ratio = 16.0 / 9.0;
-    let image_width = 1920;
+    let aspect_ratio = 3.0 / 2.0;
+    let image_width = 1200;
     let image_height = (image_width as f64 / aspect_ratio).round() as usize;
-    let samples_per_pixel = 128;
+    let samples_per_pixel = 512;
     let max_depth = 50;
 
     // world
-    let material_ground = Material::Lambertian {
-        albedo: c3(0.8, 0.8, 0.0),
-    };
-    let material_center = Material::Lambertian {
-        albedo: c3(0.1, 0.2, 0.5),
-    };
-    let material_left = Material::Dielectric { ref_idx: 1.5 };
-    let material_right = Material::Metal {
-        albedo: c3(0.8, 0.6, 0.2),
-        fuzz: 0.0,
-    };
-
-    let world = HittableList {
-        spheres: vec![
-            Sphere {
-                center: p3(0.0, -100.5, -1.0),
-                radius: 100.0,
-                material: &material_ground,
-            },
-            Sphere {
-                center: p3(0.0, 0.0, -1.0),
-                radius: 0.5,
-                material: &material_center,
-            },
-            Sphere {
-                center: p3(-1.0, 0.0, -1.0),
-                radius: 0.5,
-                material: &material_left,
-            },
-            Sphere {
-                center: p3(-1.0, 0.0, -1.0),
-                radius: -0.45,
-                material: &material_left,
-            },
-            Sphere {
-                center: p3(1.0, 0.0, -1.0),
-                radius: 0.5,
-                material: &material_right,
-            },
-        ],
-    };
+    let world = random_scene();
 
     // camera
-    let lookfrom = p3(3.0, 3.0, 2.0);
-    let lookat = p3(0.0, 0.0, -1.0);
+    let lookfrom = p3(13.0, 2.0, 3.0);
+    let lookat = p3(0.0, 0.0, 0.0);
     let view_up = v3(0.0, 1.0, 0.0);
-    let dist_to_focus = (lookfrom - lookat).len();
-    let aperture = 2.0;
+    let dist_to_focus = 10.0;
+    let aperture = 0.1;
     let camera = Camera::new(
         lookfrom,
         lookat,
