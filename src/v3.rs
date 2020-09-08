@@ -115,6 +115,14 @@ impl V3 {
     pub fn reflect(&self, normal: &V3) -> V3 {
         self - normal.scale(2.0 * self.dot(normal))
     }
+
+    // TODO understand/derive this formula
+    pub fn refract(&self, normal: &V3, etai_over_etat: f64) -> V3 {
+        let cos_theta = -self.dot(normal);
+        let r_out_perp = (self + normal.scale(cos_theta)).scale(etai_over_etat);
+        let r_out_parallel = normal.scale(-(1.0 - r_out_perp.len2()).abs().sqrt());
+        return r_out_perp + r_out_parallel;
+    }
 }
 
 impl Neg for V3 {

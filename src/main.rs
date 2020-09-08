@@ -50,15 +50,12 @@ fn main() -> std::io::Result<()> {
         albedo: c3(0.8, 0.8, 0.0),
     };
     let material_center = Material::Lambertian {
-        albedo: c3(0.7, 0.3, 0.3),
+        albedo: c3(0.1, 0.2, 0.5),
     };
-    let material_left = Material::Metal {
-        albedo: c3(0.8, 0.8, 0.8),
-        fuzz: 0.3,
-    };
+    let material_left = Material::Dielectric { ref_idx: 1.5 };
     let material_right = Material::Metal {
         albedo: c3(0.8, 0.6, 0.2),
-        fuzz: 1.0,
+        fuzz: 0.0,
     };
 
     let world = HittableList {
@@ -76,6 +73,11 @@ fn main() -> std::io::Result<()> {
             Sphere {
                 center: p3(-1.0, 0.0, -1.0),
                 radius: 0.5,
+                material: &material_left,
+            },
+            Sphere {
+                center: p3(-1.0, 0.0, -1.0),
+                radius: -0.4,
                 material: &material_left,
             },
             Sphere {
