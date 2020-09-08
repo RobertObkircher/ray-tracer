@@ -9,30 +9,37 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64) -> Camera {
-        let viewport_height = 2.0;
+    pub fn new(
+        lookfrom: P3,
+        lookat: P3,
+        view_up: V3,
+        vertical_fov: f64,
+        aspect_ratio: f64,
+    ) -> Camera {
+        let h = (vertical_fov / 2.0).tan();
+        let viewport_height = 2.0 * h;
         let viewport_width = aspect_ratio * viewport_height;
-        let focal_length = 1.0;
 
-        let origin = P3::zero();
-        let horizontal = v3(viewport_width, 0.0, 0.0);
-        let vertical = v3(0.0, viewport_height, 0.0);
+        let w = (lookfrom - lookat).norm();
+        let u = view_up.cross(&w).norm();
+        let v = w.cross(&u);
+
+        let origin = lookfrom;
+        let horizontal = u.scale(viewport_width);
+        let vertical = v.scale(viewport_height);
 
         Camera {
             origin,
             horizontal,
             vertical,
-            lower_left_corner: origin
-                - horizontal.div(2.0)
-                - vertical.div(2.0)
-                - v3(0.0, 0.0, focal_length),
+            lower_left_corner: origin - horizontal.div(2.0) - vertical.div(2.0) - w,
         }
     }
 
-    pub fn ray(&self, u: f64, v: f64) -> Ray {
+    pub fn ray(&self, s: f64, t: f64) -> Ray {
         Ray {
             origin: self.origin,
-            direction: self.lower_left_corner + self.horizontal.scale(u) + self.vertical.scale(v)
+            direction: self.lower_left_corner + self.horizontal.scale(s) + self.vertical.scale(t)
                 - self.origin,
         }
     }

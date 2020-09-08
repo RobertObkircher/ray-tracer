@@ -77,7 +77,7 @@ fn main() -> std::io::Result<()> {
             },
             Sphere {
                 center: p3(-1.0, 0.0, -1.0),
-                radius: -0.4,
+                radius: -0.45,
                 material: &material_left,
             },
             Sphere {
@@ -89,7 +89,15 @@ fn main() -> std::io::Result<()> {
     };
 
     // camera
-    let camera = Camera::new(aspect_ratio);
+    let lookfrom = p3(-2.0, 2.0, 1.0);
+    let lookat = p3(0.0, 0.0, -1.0);
+    let camera = Camera::new(
+        lookfrom,
+        lookat,
+        v3(0.0, 1.0, 0.0),
+        20.0_f64.to_radians(),
+        aspect_ratio,
+    );
 
     // render
     let mut pixels = vec![vec![v3(0.0, 0.0, 0.0); image_width]; image_height];
