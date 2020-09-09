@@ -6,13 +6,9 @@ This is my implementation of the book [_Ray Tracing in One Weekend_](https://ray
 
 ## How to run it
 
-You should definitely compile in release mode with either
+You should definitely compile in release mode:
 
-`cargo run --release`
-
-or
-
-`cargo rustc --release -- -C target-cpu=native && ./target/release/ray-tracer`
+`RUSTFLAGS="-C target-cpu=native" cargo run --release`
 
 ## The final image (1200x800):
 
